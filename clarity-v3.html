@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Tesla Android - Clarity Test v3</title>
+  <link rel="icon" type="image/png" href="./assets/tesla-android-logo.png" />
+  <link rel="shortcut icon" type="image/png" href="./assets/tesla-android-logo.png" />
+  <link rel="apple-touch-icon" href="./assets/tesla-android-logo.png" />
+
+  <link rel="stylesheet" href="./css/app.css" />
+
+
+  <script defer src="./js/vendor/reconnecting/reconnecting-websocket.js"></script>
+  <script defer src="./js/gps/estimator.js"></script>
+  <script defer src="./js/audio/audioplayback.js"></script>
+
+  <script defer src="./js/core/shared.js"></script>
+  <script defer src="./js/core/api-client.js"></script>
+  <script defer src="./js/display/display-renderer-manager.js"></script>
+  <script defer src="./js/display/display-controller.js"></script>
+  <script defer src="./js/touchscreen/touchscreen-controller.js"></script>
+  <script defer src="./js/gps/gps-controller.js"></script>
+  <script defer src="./js/audio/audio-controller.js"></script>
+  <script defer src="./js/release-notes/release-notes-data.js"></script>
+  <script defer src="./js/release-notes/release-notes-controller.js"></script>
+  <script defer src="./js/settings/settings-controller.js"></script>
+  <script defer src="./js/home/home-controller.js"></script>
+  <script defer src="./js/shell/shell-controller.js"></script>
+  <script defer src="./js/core/app.js"></script>
+</head>
+<body>
+  <div id="connectivity-banner" hidden role="status" aria-live="polite">
+    <span class="material-symbols-rounded connectivity-banner-icon">wifi_off</span>
+    <span id="connectivity-banner-text">
+      Connection with Tesla Android services lost. The app will restart when it comes back.
+    </span>
+  </div>
+
+  <section id="home-shell">
+    <div id="home-stage" aria-label="Tesla Android virtual display">
+      <div id="display-root">
+        <img id="image" alt="" />
+        <canvas id="canvas"></canvas>
+        <div id="touch-layer" aria-hidden="true"></div>
+      </div>
+      <div id="display-loading" aria-live="polite" aria-label="Loading display" hidden>
+        <svg class="loading-spinner" viewBox="0 0 66 66" role="presentation" aria-hidden="true">
+          <circle class="loading-spinner-circle" cx="33" cy="33" r="28"></circle>
+        </svg>
+      </div>
+
+      <div id="home-controls">
+        <button id="home-audio-button" class="home-control-button" type="button" title="Toggle audio">
+          <span class="material-symbols-rounded home-control-icon">volume_off</span>
+        </button>
+        <button id="home-update-button" class="home-control-button update" type="button" title="Open updater" hidden>
+          <span class="material-symbols-rounded home-control-icon">download</span>
+        </button>
+        <button id="home-settings-button" class="home-control-button" type="button" title="Open app pages">
+          <span class="material-symbols-rounded home-control-icon">settings</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-shell" hidden>
+    <header class="app-bar">
+      <h1 id="app-title">About</h1>
+    </header>
+
+    <main id="panel-content">
+      <section id="page-about" class="panel-page">
+        <div class="page-center">
+          <div class="about-content">
+            <img class="about-logo" src="./assets/tesla-android-logo.png" alt="Tesla Android logo" />
+            <div class="about-version-label">Version</div>
+            <div class="about-version-value" data-app-version></div>
+            <div class="about-message">
+              Tesla Android (2nd generation) hardware is now available.
+              Retrofits are available for 1st generation devices.
+              More details on https://teslaandroid.com
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-release-notes" class="panel-page" hidden>
+        <div class="release-layout">
+          <div id="release-versions"></div>
+          <div id="release-details"></div>
+        </div>
+      </section>
+
+      <section id="page-donations" class="panel-page" hidden>
+        <div class="page-center">
+          <div class="donation-content">
+            <div class="donation-text">
+              Thank you for considering a donation to support the ongoing development of Tesla Android. As a community-founded project, your contribution can truly make a difference!
+            </div>
+            <img
+              class="donation-qr"
+              alt="Donations QR code"
+              src="./assets/donations-qr.svg"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section id="page-settings" class="panel-page" hidden>
+        <div class="settings-layout">
+          <aside id="settings-sidebar"></aside>
+          <div class="settings-content-wrap">
+            <div id="settings-banner" hidden>
+              <span id="settings-banner-text"></span>
+              <button id="settings-banner-action" type="button">Apply</button>
+            </div>
+            <div id="settings-content"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="bottom-nav-button" data-page="home" type="button">
+        <span class="material-symbols-rounded bottom-nav-icon">android</span>
+        <span class="bottom-nav-label">Android OS</span>
+      </button>
+      <button class="bottom-nav-button" data-page="about" type="button">
+        <span class="material-symbols-rounded bottom-nav-icon">info_outline</span>
+        <span class="bottom-nav-label">About</span>
+      </button>
+      <button class="bottom-nav-button" data-page="releaseNotes" type="button">
+        <span class="material-symbols-rounded bottom-nav-icon">notes</span>
+        <span class="bottom-nav-label">Release Notes</span>
+      </button>
+      <button class="bottom-nav-button" data-page="donations" type="button">
+        <span class="material-symbols-rounded bottom-nav-icon">monetization_on</span>
+        <span class="bottom-nav-label">Donations</span>
+      </button>
+      <button class="bottom-nav-button" data-page="settings" type="button">
+        <span class="material-symbols-rounded bottom-nav-icon">settings</span>
+        <span class="bottom-nav-label">Settings</span>
+      </button>
+    </nav>
+  </section>
+
+  <div id="display-type-dialog" hidden>
+    <div class="dialog-card">
+      <h2>Display Type</h2>
+      <p>
+        Are you using a rear display?<br />
+        Certain features won't function on the main screen in motion.<br />
+        You can change the selection in Tesla Android Settings.
+      </p>
+      <div class="dialog-actions">
+        <button id="main-display-button" class="primary" type="button">MAIN DISPLAY</button>
+        <button id="rear-display-button" type="button">REAR DISPLAY</button>
+      </div>
+    </div>
+  </div>
+<script>
+
+/* Clarity experiment v3: opt-in MJPEG/WebCodecs supersampling, original code unchanged.
+   No automatic firmware update, codec, quality or refresh-rate changes.
+   The device must accept dimensions above its usual preset; verify Frame/API. */
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+  const TA = window.TAHtml;
+  if (!TA || !TA.DisplayController) return;
+  const pixelMatch = new URLSearchParams(location.search).get("mode") !== "baseline";
+  const requestedScale = 1;
+
+  const nativeCanvas = true;
+  window.__clarityWorkerURL = URL.createObjectURL(new Blob([
+    "const NATIVE_CANVAS = " + nativeCanvas + ";\n", "let pendingFrames = [];\nlet spsPps = null;\nlet decoder = null;\nlet gl = null;\nlet offscreenCanvas = null;\n\nlet width = 1280;\nlet height = 720;\nlet windowWidth = 1280;\nlet windowHeight = 720;\n\nlet frameTexture = null;\nlet renderScheduled = false;\nlet dropDeltaUntilKeyframe = true;\nlet nextTimestampUs = 0;\n\nconst FRAME_DURATION_US = 33333;\nconst MAX_RENDER_QUEUE_SIZE = 4;\nconst MAX_DECODE_QUEUE_SIZE = 8;\n\nlet positionLocation = null;\nlet texcoordLocation = null;\nlet positionBuffer = null;\nlet texcoordBuffer = null;\n\nfunction toSafeNumber(value, fallback) {\n  const parsed = Number(value);\n  if (Number.isFinite(parsed)) {\n    return Math.max(1, Math.round(parsed));\n  }\n  return Math.max(1, Math.round(fallback));\n}\n\nfunction buildDecoderConfig(spsData) {\n  if (!spsData || spsData.length < 8) {\n    return null;\n  }\n\n  let codec = \"avc1.\";\n  for (let index = 5; index < 8; index += 1) {\n    let hex = spsData[index].toString(16);\n    if (hex.length < 2) {\n      hex = \"0\" + hex;\n    }\n    codec += hex;\n  }\n\n  return {\n    codec: codec,\n    codedWidth: width,\n    codedHeight: height,\n    displayAspectWidth: windowWidth,\n    displayAspectHeight: windowHeight,\n    hardwareAcceleration: \"prefer-hardware\",\n    optimizeForLatency: true,\n  };\n}\n\nfunction configureDecoderFromSpsPps() {\n  if (!decoder || decoder.state === \"closed\" || !spsPps) {\n    return;\n  }\n\n  const config = buildDecoderConfig(spsPps);\n  if (!config) {\n    return;\n  }\n\n  try {\n    decoder.configure(config);\n    dropDeltaUntilKeyframe = true;\n  } catch (error) {\n    self.postMessage({\n      error: String(error),\n    });\n  }\n}\n\nfunction applyRuntimeConfig(config) {\n  const runtimeConfig = config || {};\n  const nextWidth = toSafeNumber(runtimeConfig.displayWidth, width);\n  const nextHeight = toSafeNumber(runtimeConfig.displayHeight, height);\n  const nextWindowWidth = toSafeNumber(runtimeConfig.windowWidth, windowWidth);\n  const nextWindowHeight = toSafeNumber(runtimeConfig.windowHeight, windowHeight);\n\n  const sizeChanged =\n    nextWidth !== width ||\n    nextHeight !== height ||\n    nextWindowWidth !== windowWidth ||\n    nextWindowHeight !== windowHeight;\n\n  width = nextWidth;\n  height = nextHeight;\n  windowWidth = nextWindowWidth;\n  windowHeight = nextWindowHeight;\n\n  if (offscreenCanvas) {\n    offscreenCanvas.width = NATIVE_CANVAS ? width : windowWidth;\n    offscreenCanvas.height = NATIVE_CANVAS ? height : windowHeight;\n  }\n\n  if (gl) {\n    gl.viewport(0, 0, offscreenCanvas.width, offscreenCanvas.height);\n  }\n\n  if (sizeChanged) {\n    closeAllPendingFrames();\n    configureDecoderFromSpsPps();\n  }\n}\n\nfunction closeAllPendingFrames() {\n  while (pendingFrames.length > 0) {\n    const frame = pendingFrames.shift();\n    if (frame && frame.close) {\n      frame.close();\n    }\n  }\n}\n\nfunction getDecodeQueueSize() {\n  if (!decoder || typeof decoder.decodeQueueSize !== \"number\") {\n    return 0;\n  }\n  return decoder.decodeQueueSize;\n}\n\nfunction isDecodeBacklogged() {\n  return (\n    pendingFrames.length > MAX_RENDER_QUEUE_SIZE ||\n    getDecodeQueueSize() > MAX_DECODE_QUEUE_SIZE\n  );\n}\n\nfunction scheduleRender() {\n  if (renderScheduled) {\n    return;\n  }\n  renderScheduled = true;\n  self.setTimeout(renderLatestFrame, 0);\n}\n\nfunction renderLatestFrame() {\n  renderScheduled = false;\n  if (!gl || pendingFrames.length === 0) {\n    return;\n  }\n\n  while (pendingFrames.length > 1) {\n    const staleFrame = pendingFrames.shift();\n    if (staleFrame && staleFrame.close) {\n      staleFrame.close();\n    }\n  }\n\n  const frame = pendingFrames.shift();\n  drawImageToCanvas(frame);\n\n  if (pendingFrames.length > 0) {\n    scheduleRender();\n  }\n}\n\nfunction drawImageToCanvas(image) {\n  if (!image || !gl || !frameTexture) {\n    if (image && image.close) {\n      image.close();\n    }\n    return;\n  }\n\n  const visible = image.visibleRect;\n  const actualWidth = visible ? visible.width : image.codedWidth;\n  const actualHeight = visible ? visible.height : image.codedHeight;\n  if (NATIVE_CANVAS && (offscreenCanvas.width !== actualWidth || offscreenCanvas.height !== actualHeight)) {\n    offscreenCanvas.width = actualWidth;\n    offscreenCanvas.height = actualHeight;\n    gl.viewport(0, 0, actualWidth, actualHeight);\n  }\n  if (!self.lastClarityReport || Date.now() - self.lastClarityReport > 750) {\n    self.lastClarityReport = Date.now();\n    self.postMessage({clarity: {\n      width: actualWidth, height: actualHeight,\n      canvasWidth: offscreenCanvas.width, canvasHeight: offscreenCanvas.height\n    }});\n  }\n  gl.bindTexture(gl.TEXTURE_2D, frameTexture);\n  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);\n  gl.clear(gl.COLOR_BUFFER_BIT);\n  gl.drawArrays(gl.TRIANGLES, 0, 6);\n  gl.bindTexture(gl.TEXTURE_2D, null);\n\n  if (image.close) {\n    image.close();\n  }\n}\n\nfunction splitNalUnits(data) {\n  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);\n  if (bytes.length < 5) {\n    return [];\n  }\n\n  const units = [];\n  let currentStart = -1;\n  let index = 0;\n\n  while (index <= bytes.length - 4) {\n    let codeLength = 0;\n    if (\n      bytes[index] === 0x00 &&\n      bytes[index + 1] === 0x00 &&\n      bytes[index + 2] === 0x00 &&\n      bytes[index + 3] === 0x01\n    ) {\n      codeLength = 4;\n    } else if (\n      bytes[index] === 0x00 &&\n      bytes[index + 1] === 0x00 &&\n      bytes[index + 2] === 0x01\n    ) {\n      codeLength = 3;\n    }\n\n    if (codeLength > 0) {\n      if (currentStart >= 0 && index > currentStart) {\n        units.push(bytes.subarray(currentStart, index));\n      }\n      currentStart = index;\n      index += codeLength;\n      continue;\n    }\n\n    index += 1;\n  }\n\n  if (currentStart >= 0 && currentStart < bytes.length) {\n    units.push(bytes.subarray(currentStart));\n  }\n\n  if (units.length === 0) {\n    units.push(bytes);\n  }\n\n  return units;\n}\n\nfunction getNalType(nal) {\n  if (!nal || nal.length < 5) {\n    return -1;\n  }\n\n  let offset = 0;\n  if (\n    nal.length >= 4 &&\n    nal[0] === 0x00 &&\n    nal[1] === 0x00 &&\n    nal[2] === 0x00 &&\n    nal[3] === 0x01\n  ) {\n    offset = 4;\n  } else if (nal.length >= 3 && nal[0] === 0x00 && nal[1] === 0x00 && nal[2] === 0x01) {\n    offset = 3;\n  }\n\n  if (offset >= nal.length) {\n    return -1;\n  }\n\n  return nal[offset] & 0x1f;\n}\n\nfunction appendByteArray(left, right) {\n  const merged = new Uint8Array((left.byteLength | 0) + (right.byteLength | 0));\n  merged.set(left, 0);\n  merged.set(right, left.byteLength | 0);\n  return merged;\n}\n\nfunction decodeEncodedNal(nal, isKey) {\n  if (!decoder || decoder.state !== \"configured\") {\n    return;\n  }\n\n  if (dropDeltaUntilKeyframe && !isKey) {\n    return;\n  }\n\n  if (isDecodeBacklogged() && !isKey) {\n    dropDeltaUntilKeyframe = true;\n    return;\n  }\n\n  let data = nal;\n  if (isKey && spsPps) {\n    data = appendByteArray(spsPps, nal);\n  }\n\n  const chunk = new EncodedVideoChunk({\n    type: isKey ? \"key\" : \"delta\",\n    timestamp: nextTimestampUs,\n    duration: FRAME_DURATION_US,\n    data: data,\n  });\n  nextTimestampUs += FRAME_DURATION_US;\n\n  try {\n    decoder.decode(chunk);\n    if (isKey) {\n      dropDeltaUntilKeyframe = false;\n    }\n  } catch (error) {\n    if (!isKey) {\n      dropDeltaUntilKeyframe = true;\n    }\n    self.postMessage({\n      error: String(error),\n    });\n  }\n}\n\nfunction handleNal(nal) {\n  const nalType = getNalType(nal);\n  if (nalType === 7) {\n    spsPps = nal;\n    configureDecoderFromSpsPps();\n    return;\n  }\n\n  if (nalType === 8) {\n    spsPps = spsPps ? appendByteArray(spsPps, nal) : nal;\n    return;\n  }\n\n  if (nalType === 5) {\n    decodeEncodedNal(nal, true);\n    return;\n  }\n\n  if (nalType === 1) {\n    decodeEncodedNal(nal, false);\n  }\n}\n\nfunction handleEncodedData(data) {\n  const units = splitNalUnits(data);\n  for (let index = 0; index < units.length; index += 1) {\n    handleNal(units[index]);\n  }\n}\n\nfunction initializeGL(glContext) {\n  const vertexSource =\n    \"attribute vec2 a_position;\\n\" +\n    \"attribute vec2 a_texCoord;\\n\" +\n    \"varying vec2 v_texCoord;\\n\" +\n    \"void main() {\\n\" +\n    \"  gl_Position = vec4(a_position, 0, 1);\\n\" +\n    \"  v_texCoord = a_texCoord;\\n\" +\n    \"}\";\n  const fragmentSource =\n    \"precision mediump float;\\n\" +\n    \"uniform sampler2D u_image;\\n\" +\n    \"varying vec2 v_texCoord;\\n\" +\n    \"void main() {\\n\" +\n    \"  gl_FragColor = texture2D(u_image, v_texCoord);\\n\" +\n    \"}\";\n\n  const vertexShader = createShader(glContext, glContext.VERTEX_SHADER, vertexSource);\n  const fragmentShader = createShader(glContext, glContext.FRAGMENT_SHADER, fragmentSource);\n\n  const program = glContext.createProgram();\n  glContext.attachShader(program, vertexShader);\n  glContext.attachShader(program, fragmentShader);\n  glContext.linkProgram(program);\n\n  positionLocation = glContext.getAttribLocation(program, \"a_position\");\n  texcoordLocation = glContext.getAttribLocation(program, \"a_texCoord\");\n\n  positionBuffer = glContext.createBuffer();\n  glContext.bindBuffer(glContext.ARRAY_BUFFER, positionBuffer);\n  glContext.bufferData(\n    glContext.ARRAY_BUFFER,\n    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),\n    glContext.STATIC_DRAW,\n  );\n\n  texcoordBuffer = glContext.createBuffer();\n  glContext.bindBuffer(glContext.ARRAY_BUFFER, texcoordBuffer);\n  glContext.bufferData(\n    glContext.ARRAY_BUFFER,\n    new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]),\n    glContext.STATIC_DRAW,\n  );\n\n  glContext.viewport(0, 0, offscreenCanvas.width, offscreenCanvas.height);\n  glContext.clearColor(0, 0, 0, 0);\n  glContext.useProgram(program);\n  glContext.enableVertexAttribArray(positionLocation);\n  glContext.bindBuffer(glContext.ARRAY_BUFFER, positionBuffer);\n  glContext.vertexAttribPointer(positionLocation, 2, glContext.FLOAT, false, 0, 0);\n  glContext.enableVertexAttribArray(texcoordLocation);\n  glContext.bindBuffer(glContext.ARRAY_BUFFER, texcoordBuffer);\n  glContext.vertexAttribPointer(texcoordLocation, 2, glContext.FLOAT, false, 0, 0);\n\n  frameTexture = glContext.createTexture();\n  glContext.bindTexture(glContext.TEXTURE_2D, frameTexture);\n  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);\n  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.LINEAR);\n  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);\n  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);\n  glContext.bindTexture(glContext.TEXTURE_2D, null);\n}\n\nfunction createShader(glContext, type, source) {\n  const shader = glContext.createShader(type);\n  glContext.shaderSource(shader, source);\n  glContext.compileShader(shader);\n  const success = glContext.getShaderParameter(shader, glContext.COMPILE_STATUS);\n  if (success) {\n    return shader;\n  }\n  const info = glContext.getShaderInfoLog(shader);\n  glContext.deleteShader(shader);\n  throw new Error(\"Shader compile error: \" + String(info || \"unknown\"));\n}\n\nself.onmessage = function (event) {\n  if (\n    event.data.canvas &&\n    event.data.displayWidth !== undefined &&\n    event.data.displayHeight !== undefined\n  ) {\n    offscreenCanvas = event.data.canvas;\n    applyRuntimeConfig({\n      displayWidth: event.data.displayWidth,\n      displayHeight: event.data.displayHeight,\n      windowWidth: event.data.windowWidth,\n      windowHeight: event.data.windowHeight,\n    });\n\n    gl = offscreenCanvas.getContext(\"webgl2\");\n    if (!gl) {\n      gl = offscreenCanvas.getContext(\"webgl\");\n    }\n    if (!gl) {\n      throw new Error(\"Failed to get WebGL context.\");\n    }\n\n    initializeGL(gl);\n    decoder = new VideoDecoder({\n      output: (frame) => {\n        pendingFrames.push(frame);\n        if (pendingFrames.length > MAX_RENDER_QUEUE_SIZE + 1) {\n          while (pendingFrames.length > 1) {\n            const staleFrame = pendingFrames.shift();\n            if (staleFrame && staleFrame.close) {\n              staleFrame.close();\n            }\n          }\n        }\n        scheduleRender();\n      },\n      error: (error) => {\n        self.postMessage({\n          error: String(error),\n        });\n      },\n    });\n  } else if (event.data.config) {\n    applyRuntimeConfig(event.data.config);\n  } else if (event.data.h264Data) {\n    handleEncodedData(event.data.h264Data);\n  }\n};\n\n"
+  ], {type: "text/javascript"}));
+  const rendererURL = URL.createObjectURL(new Blob(["var img = document.getElementById(\"image\");\nvar canvas = document.getElementById(\"canvas\");\nimg.style.display = \"none\";\ncanvas.style.display = \"block\";\n\nfunction toSafeNumber(value, fallback) {\n  var parsed = Number(value);\n  if (Number.isFinite(parsed)) return Math.max(1, Math.round(parsed));\n  return Math.max(1, Math.round(fallback));\n}\n\nfunction resolveInitialDisplayWidth() {\n  var candidate = typeof displayWidth !== \"undefined\" ? displayWidth : window.displayWidth;\n  return toSafeNumber(candidate, 1280);\n}\n\nfunction resolveInitialDisplayHeight() {\n  var candidate = typeof displayHeight !== \"undefined\" ? displayHeight : window.displayHeight;\n  return toSafeNumber(candidate, 720);\n}\n\nfunction resolveViewportSize() {\n  return {\n    width: toSafeNumber(canvas.clientWidth || window.innerWidth, window.innerWidth || 1),\n    height: toSafeNumber(canvas.clientHeight || window.innerHeight, window.innerHeight || 1),\n  };\n}\n\nfunction buildRuntimeConfig(overrides) {\n  var viewport = resolveViewportSize();\n  var config = overrides || {};\n  return {\n    displayWidth: toSafeNumber(config.displayWidth, resolveInitialDisplayWidth()),\n    displayHeight: toSafeNumber(config.displayHeight, resolveInitialDisplayHeight()),\n    windowWidth: toSafeNumber(config.windowWidth, viewport.width),\n    windowHeight: toSafeNumber(config.windowHeight, viewport.height),\n  };\n}\n\nfunction applyCanvasViewport(runtimeConfig) {\n  canvas.style.width = String(runtimeConfig.windowWidth) + \"px\";\n  canvas.style.height = String(runtimeConfig.windowHeight) + \"px\";\n}\n\nfunction readTextFromPath(path) {\n  try {\n    var xhr = new XMLHttpRequest();\n    xhr.open(\"GET\", path, false);\n    xhr.send();\n    if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {\n      return xhr.responseText;\n    }\n  } catch (_error) {\n    // no-op\n  }\n  return null;\n}\n\nfunction createWorkerWithFileFallback(workerPath) {\n  try {\n    return new Worker(workerPath);\n  } catch (primaryError) {\n    if (window.location.protocol !== \"file:\") {\n      throw primaryError;\n    }\n\n    var workerSource = readTextFromPath(workerPath);\n    if (workerSource) {\n      var blobUrl = URL.createObjectURL(\n        new Blob([workerSource], { type: \"text/javascript\" }),\n      );\n      var worker = new Worker(blobUrl);\n      worker.__blobUrl = blobUrl;\n      return worker;\n    }\n\n    var absoluteWorkerUrl = new URL(workerPath, window.location.href).href;\n    var bootstrapSource = \"importScripts(\" + JSON.stringify(absoluteWorkerUrl) + \");\";\n    var bootstrapBlobUrl = URL.createObjectURL(\n      new Blob([bootstrapSource], { type: \"text/javascript\" }),\n    );\n    var bootstrapWorker = new Worker(bootstrapBlobUrl);\n    bootstrapWorker.__blobUrl = bootstrapBlobUrl;\n    return bootstrapWorker;\n  }\n}\n\nvar worker = null;\ntry {\n  worker = createWorkerWithFileFallback(window.__clarityWorkerURL);\n} catch (error) {\n  console.error(\"Failed to initialize h264WebCodecs worker\", error);\n}\nconst offscreenCanvas = canvas.transferControlToOffscreen();\nconst initialRuntimeConfig = buildRuntimeConfig();\n\nwindow.displayWidth = initialRuntimeConfig.displayWidth;\nwindow.displayHeight = initialRuntimeConfig.displayHeight;\napplyCanvasViewport(initialRuntimeConfig);\n\nif (worker) {\n  worker.postMessage(\n    {\n      canvas: offscreenCanvas,\n      displayWidth: initialRuntimeConfig.displayWidth,\n      displayHeight: initialRuntimeConfig.displayHeight,\n      windowWidth: initialRuntimeConfig.windowWidth,\n      windowHeight: initialRuntimeConfig.windowHeight,\n    },\n    [offscreenCanvas],\n  );\n}\n\nwindow.updateDisplayRendererConfig = function updateDisplayRendererConfig(nextConfig) {\n  var runtimeConfig = buildRuntimeConfig(nextConfig || {});\n  window.displayWidth = runtimeConfig.displayWidth;\n  window.displayHeight = runtimeConfig.displayHeight;\n  applyCanvasViewport(runtimeConfig);\n  if (worker) {\n    worker.postMessage({\n      config: runtimeConfig,\n    });\n  }\n};\n\nwindow.addEventListener(\"resize\", function () {\n  if (typeof window.updateDisplayRendererConfig === \"function\") {\n    window.updateDisplayRendererConfig();\n  }\n});\n\nif (worker) {\n  worker.onmessage = function (event) {\n    if (event.data.clarity) { window.__clarityFrameStats = event.data.clarity; window.__clarityFrameAt = Date.now(); }\n    if (event.data.error) window.__clarityDecoderError = String(event.data.error);\n  };\n  worker.addEventListener(\"error\", function(event) {\n    window.__clarityDecoderError = event.message || \"Worker error\";\n  });\n}\n\nwindow.addEventListener(\"beforeunload\", function () {\n  if (worker && worker.__blobUrl) {\n    URL.revokeObjectURL(worker.__blobUrl);\n  }\n});\n\nfunction drawDisplayFrame(arrayBuffer) {\n  if (!worker) {\n    return;\n  }\n  worker.postMessage({ h264Data: arrayBuffer });\n}\n\n"], {type: "text/javascript"}));
+  const originalInfo = TA.DisplayRendererManager.prototype._rendererInfoForId;
+  TA.DisplayRendererManager.prototype._rendererInfoForId = function (id) {
+    const info = originalInfo.call(this, id);
+    return Number(id) === 1 ? {...info, scriptPath: rendererURL} : info;
+  };
+  window.addEventListener("beforeunload", function () {
+    URL.revokeObjectURL(rendererURL);
+    URL.revokeObjectURL(window.__clarityWorkerURL);
+  });
+
+  const proto = TA.DisplayController.prototype;
+  const originalSize = proto._calculateOptimalSize;
+  const originalDensity = proto._densityForResolutionPreset;
+  const originalInitialize = proto.initialize;
+  const originalSend = proto._sendResizeRequest;
+  let controller = null;
+  let apiState = null;
+  let status = "Connecting";
+  let request = null;
+  let postFailed = false;
+
+  proto._calculateOptimalSize = function (view, options) {
+    const base = originalSize.call(this, view, options);
+    this.clarityDensityScale = 1;
+    const eligible = options.isHeadless &&
+      Number(options.resolutionPreset) === 0 &&
+      this.remoteDisplayState && [0, 1].includes(this.remoteDisplayState.renderer);
+    this.clarityEligible = Boolean(eligible);
+    this.clarityTarget = null;
+    if (!pixelMatch || !eligible) return base;
+    // Fit the unmodified baseline aspect to the viewport, not the previous frame.
+    // This avoids accumulating scaling on refresh and retains dynamic-off behavior.
+    const viewport = TA.utils.getViewportSize();
+    const dpr = Number(window.devicePixelRatio) || 1;
+    if (!(viewport.width > 0 && viewport.height > 0 && dpr > 0)) return base;
+    const fit = Math.min(viewport.width / base.width, viewport.height / base.height);
+    const target = {width: base.width * fit * dpr, height: base.height * fit * dpr};
+    const bound = Math.min(1, 1920 / target.width, 1088 / target.height);
+    const size = {
+      width: Math.max(320, Math.min(1920, Math.ceil(target.width * bound / 64) * 64)),
+      height: Math.max(512, Math.min(1088, Math.ceil(target.height * bound / 32) * 32))
+    };
+    this.clarityTarget = {width: Math.round(target.width), height: Math.round(target.height)};
+    this.clarityDensityScale = Math.sqrt((size.width / base.width) * (size.height / base.height));
+    return size;
+  };
+  proto._densityForResolutionPreset = function (preset, h264) {
+    const base = originalDensity.call(this, preset, h264);
+    return Math.round(base * (this.clarityDensityScale || 1));
+  };
+  proto.initialize = async function () {
+    controller = this;
+    const post = this.apiClient.postDisplayState.bind(this.apiClient);
+    this.apiClient.postDisplayState = async function (payload) {
+      request = { ...payload };
+      apiState = null;
+      postFailed = false;
+      status = "Applying";
+      try {
+        const result = await post(payload);
+        status = "Request accepted; checking frame";
+        return result;
+      } catch (error) {
+        postFailed = true;
+        status = "Request failed: " + String(error.message || error);
+        throw error;
+      }
+    };
+    try { return await originalInitialize.call(this); }
+    catch (error) {
+      status = "Connection failed: " + String(error.message || error);
+      throw error;
+    }
+  };
+  proto._sendResizeRequest = async function (token) {
+    await originalSend.call(this, token);
+    if (token !== this.resize.token || postFailed) return;
+    try {
+      const actual = await this.apiClient.fetchDisplayState();
+      if (token !== this.resize.token) return;
+      apiState = actual;
+      status = "Check Frame below";
+    } catch (error) {
+      status = "API readback unavailable: " + String(error.message || error);
+    }
+  };
+
+  const box = document.createElement("div");
+  box.id = "clarity-panel";
+  box.style.cssText = "position:absolute;left:8px;top:8px;z-index:60;max-width:calc(100% - 180px);background:rgba(0,0,0,.88);color:white;padding:8px 10px;border:1px solid #777;border-radius:8px;font:14px/1.4 monospace";
+  const row = document.createElement("div");
+  const label = document.createElement("strong");
+  label.textContent = "Clarity v3  ";
+  row.appendChild(label);
+  function addLink(text, mode) {
+    const a = document.createElement("a");
+    const url = new URL(location.href);
+    url.searchParams.delete("scale");
+    url.searchParams.delete("canvas");
+    url.searchParams.set("mode", mode);
+    a.href = url.href;
+    a.textContent = text;
+    a.style.cssText = "display:inline-block;color:white;background:#333;padding:8px;margin-right:6px;text-decoration:none;border-radius:5px";
+    if (pixelMatch === (mode === "pixel")) a.style.background = "#235b83";
+    row.appendChild(a);
+  }
+  addLink("Canvas fix", "baseline");
+  addLink("Pixel match", "pixel");
+  const hide = document.createElement("button");
+  hide.type = "button";
+  hide.textContent = "Hide info";
+  hide.style.cssText = "padding:8px;background:#333;border:0;border-radius:5px;color:white";
+  row.appendChild(hide);
+  box.appendChild(row);
+  const info = document.createElement("div");
+  info.style.cssText = "margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere";
+  box.appendChild(info);
+  hide.addEventListener("click", function () {
+    info.hidden = !info.hidden;
+    hide.textContent = info.hidden ? "Show info" : "Hide info";
+  });
+  document.getElementById("home-shell").appendChild(box);
+
+  function dimensions(value) {
+    return value ? value.width + "x" + value.height : "-";
+  }
+  function refreshInfo() {
+    const img = document.getElementById("image");
+    const root = document.getElementById("display-root");
+    const rect = root.getBoundingClientRect();
+    const state = controller && controller.remoteDisplayState;
+    const mjpeg = state && state.renderer === 0;
+    const decoded = window.__clarityFrameStats;
+    const webcodecs = state && state.renderer === 1;
+    const frame = mjpeg && img.naturalWidth ? img.naturalWidth + "x" + img.naturalHeight :
+      webcodecs && decoded ? dimensions(decoded) : "-";
+    const backing = webcodecs && decoded ? decoded.canvasWidth + "x" + decoded.canvasHeight : "-";
+    const physical = {width: Math.round(rect.width * (window.devicePixelRatio || 1)), height: Math.round(rect.height * (window.devicePixelRatio || 1))};
+    const fresh = window.__clarityFrameAt && Date.now() - window.__clarityFrameAt < 4000;
+    const matches = request && decoded && request.width === decoded.width && request.height === decoded.height;
+    const mode = !pixelMatch ? "Canvas fix baseline" :
+      controller && controller.clarityEligible ? "Pixel match (aligned / bounded)" : "Inactive: use WebCodecs or MJPEG / 832p / headless";
+    const progress = webcodecs ? (!fresh ? "Waiting for fresh frame" : matches ? "Frame matches request" : "Frame differs from request; not confirmed") : status;
+    info.textContent = mode +
+      "\nTarget " + dimensions(controller && controller.clarityTarget) + "  Screen ~" + dimensions(physical) +
+      "\nRequest " + dimensions(request) + "  API " + dimensions(apiState) +
+      "\nFrame " + frame + "  CSS " + Math.round(rect.width) + "x" + Math.round(rect.height) +
+      "  DPR " + (window.devicePixelRatio || 1).toFixed(2) + "\nCanvas " + backing +
+      "\nDensity " + (apiState ? apiState.density : "-") +
+      "  " + (mjpeg ? "MJPEG" : webcodecs ? "WebCodecs" : "Other / waiting") + "\n" + (window.__clarityDecoderError || (postFailed ? status : progress));
+  }
+  refreshInfo();
+  window.setInterval(refreshInfo, 1000);
+});
+
+
+</script>
+</body>
+</html>
